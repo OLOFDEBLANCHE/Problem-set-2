@@ -3,11 +3,8 @@ library(tidyr)
 
 ##Parts a-d
 
-N = 25
+N = 100
 X = rnorm(mean = 0, sd = 1, n = N)
-test = c(1,2,3)
-
-(test-1)^2
 
 mean = c(0,0,2,2)
 var = c(1/2, 2, 1/2, 2)
@@ -61,12 +58,15 @@ legend(-1,2,legend=c("(0,1/2)","(0,2)","(2,1/2)", "(2,2)"), col=c("red","blue","
 
 
 ##e-h
+
+##Prior parameters 
 mu = 0
 tao = 1/2 
 alpha = 1
 beta = 1
 
 
+##Initial values
 mu_0= c(0,-2)
 sigma_0 = c(1,5)
 
@@ -79,18 +79,20 @@ for (j in 1:2){
   
   for(i in 1:1000){
     
-    mu_n = (N/sigmas[j,i]*mean(X)+1/tao*mu)/(N/sigmas[j,i]+1/tao)
-    tao_n = 1/(N/sigmas[j,i]+1/tao)
+    mu_n = (N/sigmas[j,i]*mean(X)+1/tao*mu)/(N/sigmas[j,i]+1/tao) ##Posterior mean
+    tao_n = 1/(N/sigmas[j,i]+1/tao) ##Posterior variance
     
-    means[j,i+1] = rnorm(n = 1, mean = mu_n, sd = sqrt(tao_n)) 
+    means[j,i+1] = rnorm(n = 1, mean = mu_n, sd = sqrt(tao_n)) ##Draw next mean from distribution
+    #conditional on data and variance[i]
     
-    squares = (X - means[j,i+1])^2
+    squares = (X - means[j,i+1])^2 
     
-    shape_a = alpha + N/2
+    shape_a = alpha + N/2 ##Posterior shape
     
-    rate_b = beta + 1/2*sum(squares)
+    rate_b = beta + 1/2*sum(squares) ##Posterior rate
     
-    sigmas[j,i+1] = 1/rgamma(n = 1,shape = shape_a, rate =rate_b)
+    sigmas[j,i+1] = 1/rgamma(n = 1,shape = shape_a, rate =rate_b) ##Draw next variance from
+    #distribution conditional on data and mean[i + 1]
     
     
   } 
@@ -137,11 +139,18 @@ plot(dens2_sigmas$x[-1], dens2_sigmas$y[-1], type = "l")
 
 
 
-#i-j
+#i
+##Repeated sampling of a VECTOR of the parameters. 
+##Prior, joint distribution are assumed to be independent. 
 
+
+##Initial values
 mu_0 = 0
 sigma_0 = 1
-candidate_sd = 2
+
+##Candidtate standard deviation
+candidate_sd_mean = 1
+candidate_sd_var = 1
 
 means = rep(0, times = 1001)
 vars = rep(0, times = 1001)
@@ -149,59 +158,62 @@ vars = rep(0, times = 1001)
 means[1] = mu_0
 vars[1] = sigma_0
 
-mu_n = (N/1*mean(X)+1/tao*mu)/(N/1+1/tao)
-tao_n = 1/(N/1+1/tao)
 
-squares = (X - mu)^2
-
-shape_a = alpha + N/2
-
-rate_b = beta + 1/2*sum(squares)
-
-for(i in 1:1001){
-  cand_mean = rnorm(n = 1, mean = means[i], sd = candidate_sd)
-  cand_var = rnorm(n = 1, mean = vars[i], sd = candidate_sd)
+for(i in 1:1000){
+  
+  cand_mean = rnorm(n = 1, mean = means[i], sd = candidate_sd_mean) ##Draw mean from candidate dist
+  cand_var = rnorm(n = 1, mean = vars[i], sd = candidate_sd_var) ##Draw var from candidate dist
   
   if(cand_var<0){
     cand_var = cand_var*(-1)
   }
   
-  posterior_cand_mean = dnorm(x = cand_mean, mean = mu_n, sd = sqrt(tao_n)) 
-  poserterior_mean = dnorm(x = means[i], mean = mu_n, sd = sqrt(tao_n)) 
   
-  frac_mean = posterior_cand_mean / poserterior_mean
+  ##Candidate posterior
+  mu_n_cand = (N/cand_var*mean(X)+1/tao*mu)/(N/cand_var+1/tao) ##Posterior mean of mu. 
+  tao_n_cand = 1/(N/cand_var+1/tao) ##Posterior variance of mu
   
+  f_cand_var = dgamma(cand_var, shape = alpha, rate = beta)
   
-  posterior_cand_var = dgamma(x = 1/cand_var, shape = shape_a, rate = rate_b)
-  posterior_var = dgamma(x = 1/vars[i], shape = shape_a, rate = rate_b)
+  f_cand_mean = dnorm(x = cand_mean, mean = mu_n_cand, sd = sqrt(tao_n_cand)) ##prob of cand mean
+  #* likelihood of sample
+  posterior_cand = f_cand_var * f_cand_mean
   
-  frac_var = posterior_cand_var / posterior_var
+
+  ##Current posterior 
+  mu_n = (N/vars[i]*mean(X)+1/tao*mu)/(N/vars[i]+1/tao) 
+  tao_n = 1/(N/vars[i]+1/tao) 
+  
+  f_var = dgamma(vars[i], shape = alpha, rate = beta)
+
+  f_mean = dnorm(x = means[i], mean = mu_n, sd = sqrt(tao_n)) ##Prob of current mean
+  #* likelihood of sample 
+  posterior_current = f_var * f_mean
+  
+
+  frac = posterior_cand / posterior_current
+  
   
   u = runif(n = 1)
   
-  if(u <= frac_mean){
+  if(u <= frac){
     means[i+1] = cand_mean
-  }
-  
-  else{
-    means[i + 1] = means[i]
-  }
-  
-  if(u <= frac_var){
     vars[i+1] = cand_var
   }
   
   else{
-    vars[i + 1] = vars[i]
+    means[i + 1] = means[i]
+    vars[i+1] = vars[i]
   }
   
 }
 
 ##i
-
+plot(1:1001, means)
+plot(1:1001, vars)
 
 dens3_mean = density(means)
-dens3_sigmas = density(sigmas)
+dens3_sigmas = density(vars)
 
 
 plot(dens3_mean$x, dens3_mean$y, type = "l")
@@ -213,47 +225,96 @@ lines(dens3_sigmas$x, dens3_sigmas$y, type = "l", col = "blue")
 
 ##j 
 
+f_post = function(data, mu, sigma){
+  
+  probs = dnorm(data, mean=mu, sd = sqrt(sigma)) 
+  f_mu = 1/4 * exp(-2*abs(mu))
+  f_sigma = dexp(x = sigma, rate = 1)
+
+  l = prod(probs)
+  
+  return(l*f_mu*f_sigma)
+} 
+
+##Initial values
+mu_0 = 0
+sigma_0 = 1
+
+##Candidtate standard deviation
+candidate_sd_mean = 1
+candidate_sd_var = 1
+
+means = rep(0, times = 1001)
+vars = rep(0, times = 1001)
+
+means[1] = mu_0
+vars[1] = sigma_0
 
 
-
-for(i in 1:1001){
-  cand_mean = rnorm(n = 1, mean = means[i], sd = candidate_sd)
-  cand_var = rnorm(n = 1, mean = vars[i], sd = candidate_sd)
+for(i in 1:1000){
+  
+  cand_mean = rnorm(n = 1, mean = means[i], sd = candidate_sd_mean) ##Draw mean from candidate dist
+  cand_var = rnorm(n = 1, mean = vars[i], sd = candidate_sd_var) ##Draw var from candidate dist
   
   if(cand_var<0){
     cand_var = cand_var*(-1)
   }
   
-  posterior_cand_mean = dnorm(x = cand_mean, mean = mu_n, sd = sqrt(tao_n)) 
-  poserterior_mean = dnorm(x = means[i], mean = mu_n, sd = sqrt(tao_n)) 
   
-  frac_mean = posterior_cand_mean / poserterior_mean
+  ##Candidate posterior
+
+  posterior_cand = f_post(X, cand_mean, cand_var)
   
   
-  posterior_cand_var = dgamma(x = 1/cand_var, shape = shape_a, rate = rate_b)
-  posterior_var = dgamma(x = 1/vars[i], shape = shape_a, rate = rate_b)
+  ##Current posterior 
+
+  posterior_current = f_post(X, means[i], vars[i])
   
-  frac_var = posterior_cand_var / posterior_var
+  
+  frac = posterior_cand / posterior_current
+  
   
   u = runif(n = 1)
   
-  if(u <= frac_mean){
+  if(u <= frac){
     means[i+1] = cand_mean
-  }
-  
-  else{
-    means[i + 1] = means[i]
-  }
-  
-  if(u <= frac_var){
     vars[i+1] = cand_var
   }
   
   else{
-    vars[i + 1] = vars[i]
+    means[i + 1] = means[i]
+    vars[i+1] = vars[i]
   }
   
 }
+
+##i
+plot(1:1001, means)
+plot(1:1001, vars)
+
+dens4_mean = density(means)
+dens4_sigmas = density(vars)
+
+##Posterior density given known variance and data
+mu_n = (N/1*mean(X)+1/tao*mu)/(N/1+1/tao)
+tao_n = 1/(N/1+1/tao)
+f_mean = 1/sqrt(2 * pi * tao_n)*exp(-(dens4_mean$x-mu_n)^2/(2*tao_n))
+##
+
+plot(dens4_mean$x, dens4_mean$y, type = "l")
+lines(dens3_mean$x, dens3_mean$y, type = "l", col = "red")
+lines(dens_mean$x, dens_mean$y, type = "l", col = "blue")
+lines(dens4_mean$x, f_mean, type = "l", col = "green")
+legend(-0.1,8,legend=c("MH-pr2","MH-pr1","Gibbs", "Known var"), col=c("black","red", "blue","green"),
+       pch=c("l","l","l","l"))
+
+
+plot(dens_sigmas$x, dens_sigmas$y, type = "l")
+lines(dens4_sigmas$x, dens3_sigmas$y, type = "l", col = "blue")
+
+
+
+
 
 
 
