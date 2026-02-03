@@ -1,9 +1,98 @@
 library(ggplot2)
 library(tidyr)
 
-##Parts a-d
+dir = "C:/Users/24693/OneDrive - Handelshögskolan i Stockholm/Documents/Plugg/Metrics 1/PS/Problem set 2/Bilder"
 
-N = 100
+
+##1
+
+
+
+expectation = function(par,y){
+  c = par[1]
+  x = seq((c+1),101)
+  
+  j = seq(1,100)
+  
+  s_seq = (j/100)^y*(1-j/100)^(100-y)
+  
+  k = sum(s_seq)
+  
+  expected_pay = (x/100)^y*(1-x/100)^(100-y)*100/(x-c)
+  
+  total = sum(expected_pay)*1/k
+  
+  return(-total)
+  
+}
+
+y_vals = seq(1,100)
+x_vals = rep(0, length(y_vals))
+
+
+for (j in 1:100){
+  x = seq(1,100)
+  
+  y = rep(0, length(x))
+  max = 0
+  x_max = 0
+  for (i in 1:length(x)){
+    y[i] = -expectation(c(x[i]),y_vals[j])
+    
+    if(y[i]>max){
+      max = y[i]
+      x_max = i
+    }
+    
+    
+  }
+  x_vals[j] = x_max 
+  
+}
+
+png(filename = paste0(dir, "/Optim_of_y.png"), width = 800, height = 600)
+plot(y_vals[40:60], x_vals[40:60], xlab = "Y value", ylab = "Optimal choice")
+lines(y_vals[40:60], y_vals[40:60], col = "red", lwd = 3)
+legend(40,55,legend=c("Optimal choice","X=Y"), col=c("black","red"),
+       pch=c("o","l"))
+
+dev.off()
+
+length(y_vals)
+x_vals[98]
+
+
+x = seq(1,100)
+
+y = rep(0, length(x))
+max = 0
+for (i in 1:length(x)){
+  y[i] = -expectation(c(x[i]),50)
+  
+  if(y[i]>max){
+    max = y[i]
+    x_max = i
+  }
+  
+  
+}
+
+png(filename = paste0(dir, "/E_of_50.png"), width = 800, height = 600)
+plot(x,y, xlim=c(40,60), ylab = "Expected pay (y = 50)", xlab = "Choice of jar")
+dev.off()
+
+-expectation(50,50)
+
+
+
+
+
+
+
+##2
+##Parts a-d
+set.seed(5)
+N = 25
 X = rnorm(mean = 0, sd = 1, n = N)
 
 mean = c(0,0,2,2)
@@ -13,7 +102,7 @@ var = c(1/2, 2, 1/2, 2)
 val = seq(-1,1, by = 0.01)
 data = matrix(nrow = length(val), ncol = 5)
 
-max = matrix(nrow = 1, ncol = 4)
+max = matrix(nrow = 2, ncol = 4)
 
 colnames(data) = c("val", 1,2,3,4)
 colnames(max) = c(1,2,3,4)
@@ -42,20 +131,21 @@ for (i in 1:4){
   maximum = optim(c(0), post)
   
   max[1,i] =  maximum$par
+  max[2,i] =  -1*maximum$value
   
 }
 
 df = data.frame(data)
 max
-
-plot(df$val, df$X1,type = "l", col = "red")
+png(filename = paste0(dir, "/posterior densities.png"), width = 800, height = 600)
+plot(df$val, df$X1,type = "l", col = "red", xlab = "x", ylab = "Density")
 lines(df$val, df$X2, type = "l", col = "blue")
 lines(df$val, df$X3, type = "l", col = "green")
 lines(df$val, df$X4, type = "l", col = "black")
 
 legend(-1,2,legend=c("(0,1/2)","(0,2)","(2,1/2)", "(2,2)"), col=c("red","blue","green","black"),
        pch=c("l","l","l","l"))
-
+dev.off()
 
 ##e-h
 
@@ -100,11 +190,21 @@ for (j in 1:2){
   
 
 }
+png(filename = paste0(dir, "/means0.png"), width = 800, height = 600)
+plot(1:1001, means[1,], xlab = "Iteration", ylab = expression(mu))
+dev.off()
 
-plot(1:1001, means[1,])
-plot(1:1001, means[2,])
-plot(1:1001, sigmas[1,])
-plot(1:1001, sigmas[2,])
+png(filename = paste0(dir, "/meansMinus2.png"), width = 800, height = 600)
+plot(1:1001, means[2,], xlab = "Iteration", ylab = expression(mu))
+dev.off()
+
+png(filename = paste0(dir, "/var1.png"), width = 800, height = 600)
+plot(1:1001, sigmas[1,], xlab = "Iteration", ylab = expression(sigma^2))
+dev.off()
+
+png(filename = paste0(dir, "/var5.png"), width = 800, height = 600)
+plot(1:1001, sigmas[2,], xlab = "Iteration", ylab = expression(sigma^2))
+dev.off()
 
 #f
 dens_mean = density(means[1,])
@@ -117,8 +217,13 @@ tao_n = 1/(N/1+1/tao)
 
 f_mean = 1/sqrt(2 * pi * tao_n)*exp(-(dens_mean$x-mu_n)^2/(2*tao_n))
 
-plot(dens_mean$x, dens_mean$y, type = "l")
+png(filename = paste0(dir, "/Gibbs0.png"), width = 800, height = 600)
+plot(dens_mean$x, dens_mean$y, type = "l", xlab = expression(mu), ylab = "Density")
 lines(dens_mean$x, f_mean, type = "l", col = "blue")
+
+legend(-0.75,2,legend=c("Known var","Gibbs"), col=c("black","blue"),
+       pch=c("l","l"))
+dev.off()
 
 plot(dens_sigmas$x, dens_sigmas$y, type = "l")
 
@@ -131,8 +236,15 @@ dens2_sigmas = density(sigmas[2,])
 
 f_var = 1/sqrt(2 * pi * tao_n)*exp(-(dens2_mean$x[-1]-mu_n)^2/(2*tao_n))
 
-plot(dens2_mean$x[-1], dens2_mean$y[-1], type = "l")
+
+png(filename = paste0(dir, "/GibbsMinus2.png"), width = 800, height = 600)
+plot(dens2_mean$x[-1], dens2_mean$y[-1], type = "l", xlab = expression(mu), ylab = "Density")
 lines(dens2_mean$x[-1], f_var, type = "l", col = "blue")
+
+legend(-1.5,2,legend=c("Known var","Gibbs"), col=c("black","blue"),
+       pch=c("l","l"))
+dev.off()
+
 
 plot(dens2_sigmas$x[-1], dens2_sigmas$y[-1], type = "l")
 
@@ -215,12 +327,24 @@ plot(1:1001, vars)
 dens3_mean = density(means)
 dens3_sigmas = density(vars)
 
-
-plot(dens3_mean$x, dens3_mean$y, type = "l")
+png(filename = paste0(dir, "/MCMC_N_mean.png"), width = 800, height = 600)
+plot(dens3_mean$x, dens3_mean$y, type = "l", xlab = expression(mu), ylab = "Density")
 lines(dens_mean$x, dens_mean$y, type = "l", col = "blue")
+legend(-0.6,3,legend=c("MCMC","Gibbs"), col=c("black","blue"),
+       pch=c("l","l"))
+dev.off()
 
-plot(dens_sigmas$x, dens_sigmas$y, type = "l")
-lines(dens3_sigmas$x, dens3_sigmas$y, type = "l", col = "blue")
+
+png(filename = paste0(dir, "/MCMC_gamma_var.png"), width = 800, height = 600)
+
+plot( dens3_sigmas$x, dens3_sigmas$y , type = "l", xlab = expression(sigma^2), ylab = "Density")
+lines(dens_sigmas$x, dens_sigmas$y, type = "l", col = "blue")
+
+legend(0.5,2,legend=c("MCMC","Gibbs"), col=c("black","blue"),
+       pch=c("l","l"))
+
+dev.off()
+
 
 
 ##j 
@@ -301,19 +425,23 @@ tao_n = 1/(N/1+1/tao)
 f_mean = 1/sqrt(2 * pi * tao_n)*exp(-(dens4_mean$x-mu_n)^2/(2*tao_n))
 ##
 
-plot(dens4_mean$x, dens4_mean$y, type = "l")
+png(filename = paste0(dir, "/MCMC_prior2_mean.png"), width = 800, height = 600)
+plot(dens4_mean$x, dens4_mean$y, type = "l", xlab = expression(mu), ylab = "Density")
 lines(dens3_mean$x, dens3_mean$y, type = "l", col = "red")
 lines(dens_mean$x, dens_mean$y, type = "l", col = "blue")
 lines(dens4_mean$x, f_mean, type = "l", col = "green")
-legend(-0.1,8,legend=c("MH-pr2","MH-pr1","Gibbs", "Known var"), col=c("black","red", "blue","green"),
+legend(-0.6,3,legend=c("MH-prior2","MH-prior1","Gibbs", "Known var"), col=c("black","red", "blue","green"),
        pch=c("l","l","l","l"))
+dev.off()
 
+png(filename = paste0(dir, "/MCMC_prior2_var.png"), width = 800, height = 600)
+plot(dens4_sigmas$x, dens4_sigmas$y, type = "l", xlab = expression(sigma^2), ylab = "Density", ylim= c(0,2.2))
+lines(dens3_sigmas$x, dens3_sigmas$y, type = "l", col = "red")
+lines(dens_sigmas$x, dens_sigmas$y, type = "l", col = "blue")
+legend(2,1.5,legend=c("MH-prior2","MH-prior1","Gibbs"), col=c("black","red", "blue"),
+       pch=c("l","l","l"))
 
-plot(dens_sigmas$x, dens_sigmas$y, type = "l")
-lines(dens4_sigmas$x, dens3_sigmas$y, type = "l", col = "blue")
-
-
-
+dev.off()
 
 
 
