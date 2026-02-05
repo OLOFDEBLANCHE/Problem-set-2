@@ -320,6 +320,57 @@ for(i in 1:1000){
   
 }
 
+
+f_post = function(data, mu_arg, sigma_arg){
+  
+  probs = dnorm(data, mean=mu_arg, sd = sqrt(sigma_arg)) 
+  f_mu = dnorm(x = mu_arg, mu, tao)
+  f_sigma = dgamma(x = sigma_arg, shape = alpha, rate = beta)
+  
+  l = prod(probs)
+  
+  return(l*f_mu*f_sigma)
+} 
+
+for(i in 1:1000){
+  
+  cand_mean = rnorm(n = 1, mean = means[i], sd = candidate_sd_mean) ##Draw mean from candidate dist
+  cand_var = rnorm(n = 1, mean = vars[i], sd = candidate_sd_var) ##Draw var from candidate dist
+  
+  if(cand_var<0){
+    cand_var = cand_var*(-1)
+  }
+  
+  
+  ##Candidate posterior
+  
+  posterior_cand = f_post(X, cand_mean, cand_var)
+  
+  
+  ##Current posterior 
+  
+  posterior_current = f_post(X, means[i], vars[i])
+  
+  
+  frac = posterior_cand / posterior_current
+  
+  
+  u = runif(n = 1)
+  
+  if(u <= frac){
+    means[i+1] = cand_mean
+    vars[i+1] = cand_var
+  }
+  
+  else{
+    means[i + 1] = means[i]
+    vars[i+1] = vars[i]
+  }
+  
+}
+
+
+
 ##i
 plot(1:1001, means)
 plot(1:1001, vars)
@@ -327,24 +378,25 @@ plot(1:1001, vars)
 dens3_mean = density(means)
 dens3_sigmas = density(vars)
 
+
 png(filename = paste0(dir, "/MCMC_N_mean.png"), width = 800, height = 600)
 plot(dens3_mean$x, dens3_mean$y, type = "l", xlab = expression(mu), ylab = "Density")
 lines(dens_mean$x, dens_mean$y, type = "l", col = "blue")
-legend(-0.6,3,legend=c("MCMC","Gibbs"), col=c("black","blue"),
+legend(-0.6,2.5,legend=c("MCMC","Gibbs"), col=c("black","blue"),
        pch=c("l","l"))
 dev.off()
 
 
 png(filename = paste0(dir, "/MCMC_gamma_var.png"), width = 800, height = 600)
 
-plot( dens3_sigmas$x, dens3_sigmas$y , type = "l", xlab = expression(sigma^2), ylab = "Density")
-lines(dens_sigmas$x, dens_sigmas$y, type = "l", col = "blue")
+plot( dens_sigmas$x, dens_sigmas$y , type = "l", xlab = expression(sigma^2), ylab = "Density")
+lines(dens3_sigmas$x, dens3_sigmas$y, type = "l", col = "blue")
 
-legend(0.5,2,legend=c("MCMC","Gibbs"), col=c("black","blue"),
+legend(3,1.5,legend=c("MCMC","Gibbs"), col=c("black","blue"),
        pch=c("l","l"))
 
 dev.off()
-
+plot(dens3_sigmas$x,dens3_sigmas$y)
 
 
 ##j 
@@ -416,8 +468,8 @@ for(i in 1:1000){
 plot(1:1001, means)
 plot(1:1001, vars)
 
-dens4_mean = density(means)
-dens4_sigmas = density(vars)
+dens4_mean = density(means[-(1:200)])
+dens4_sigmas = density(vars[-(1:200)])
 
 ##Posterior density given known variance and data
 mu_n = (N/1*mean(X)+1/tao*mu)/(N/1+1/tao)
