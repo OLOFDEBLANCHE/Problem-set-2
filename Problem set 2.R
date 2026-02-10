@@ -230,8 +230,8 @@ plot(dens_sigmas$x, dens_sigmas$y, type = "l")
 
 
 #h
-dens2_mean = density(means[2,])
-dens2_sigmas = density(sigmas[2,])
+dens2_mean = density(means[2,-(1:200)])
+dens2_sigmas = density(sigmas[2,-(1:200)])
 
 
 f_var = 1/sqrt(2 * pi * tao_n)*exp(-(dens2_mean$x[-1]-mu_n)^2/(2*tao_n))
@@ -375,8 +375,8 @@ for(i in 1:1000){
 plot(1:1001, means)
 plot(1:1001, vars)
 
-dens3_mean = density(means)
-dens3_sigmas = density(vars)
+dens3_mean = density(means[-(1:200)])
+dens3_sigmas = density(vars[-(1:200)])
 
 
 png(filename = paste0(dir, "/MCMC_N_mean.png"), width = 800, height = 600)
